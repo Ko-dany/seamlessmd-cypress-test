@@ -4,13 +4,15 @@ const TEST_PASSWORD = "password123";
 const LOGIN_API_ENDPOINT = "/api/v4/auth";
 
 const SELECTORS = {
-  emailInput: 'input[name="email"]',
-  passwordInput: 'input[name="password"]',
-  loginButton: 'button:contains("Login")',
-  signUpLink: 'a:contains("Create")',
-  formEmailErrorMessage: '[data-slot="error-message"]:contains("username")',
-  formPasswordErrorMessage: '[data-slot="error-message"]:contains("password")',
-  loginFailureMessage: '[role="alert"]:contains("incorrect")',
+  emailInput: () => cy.get('input[name="email"]'),
+  passwordInput: () => cy.get('input[name="password"]'),
+  loginButton: () => cy.contains("button", "Login"),
+  signUpLink: () => cy.contains("a", "Create"),
+  formEmailErrorMessage: () =>
+    cy.contains('[data-slot="error-message"]', "username"),
+  formPasswordErrorMessage: () =>
+    cy.contains('[data-slot="error-message"]', "password"),
+  loginFailureMessage: () => cy.contains('[role="alert"]', "incorrect"),
 };
 
 describe("SeamlessMD Login Page", () => {
@@ -19,31 +21,58 @@ describe("SeamlessMD Login Page", () => {
   });
 
   it("should display login form with all required elements", () => {
-    cy.get(SELECTORS.emailInput).should("be.visible");
-    cy.get(SELECTORS.passwordInput).should("be.visible");
+    SELECTORS.emailInput().should("be.visible");
+    SELECTORS.passwordInput().should("be.visible");
 
-    cy.get(SELECTORS.loginButton).should("be.visible");
-    cy.get(SELECTORS.signUpLink).should("be.visible");
-
-    cy.get(SELECTORS.loginButton).should("be.enabled");
+    SELECTORS.loginButton().should("be.visible");
+    SELECTORS.signUpLink().should("be.visible");
+    SELECTORS.loginButton().should("be.enabled");
   });
 
   it("should show validation error for empty email field", () => {
-    cy.get(SELECTORS.loginButton).click();
-    cy.get(SELECTORS.formEmailErrorMessage).should("be.visible");
-    cy.get(SELECTORS.formPasswordErrorMessage).should("be.visible");
+    SELECTORS.loginButton().click();
+    SELECTORS.formEmailErrorMessage().should("be.visible");
+    SELECTORS.formPasswordErrorMessage().should("be.visible");
   });
 
   it("should handle error when login fails", () => {
     cy.login(TEST_EMAIL, TEST_PASSWORD);
-    cy.get(SELECTORS.loginFailureMessage).should("be.visible");
+    SELECTORS.loginFailureMessage().should("be.visible");
+  });
+
+  it("should have proper accessibility attributes", () => {
+    SELECTORS.emailInput()
+      .invoke("attr", "aria-label")
+      .should("match", /email/i)
+      .then((ariaLabel) => {
+        cy.log("Email input aria-label: " + `${ariaLabel}`);
+      });
+    SELECTORS.passwordInput()
+      .invoke("attr", "aria-label")
+      .should("match", /password/i)
+      .then((ariaLabel) => {
+        cy.log("Password input aria-label: " + `${ariaLabel}`);
+      });
+  });
+
+  it("should be able to login using keyboard", () => {
+    cy.login(TEST_EMAIL, TEST_PASSWORD, true);
+    SELECTORS.loginFailureMessage().should("be.visible");
   });
 });
 
-Cypress.Commands.add("login", (email, password) => {
-  cy.get(SELECTORS.emailInput).type(email);
-  cy.get(SELECTORS.passwordInput).type(password);
+Cypress.Commands.add("login", (email, password, useKeyboard = false) => {
+  if (useKeyboard) {
+    SELECTORS.emailInput().focus().type(email);
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.intercept("POST", LOGIN_API_ENDPOINT).as("loginRequest");
+    SELECTORS.passwordInput().type(password).type("{enter}");
+    cy.wait("@loginRequest");
+    return;
+  }
+  SELECTORS.emailInput().type(email);
+  SELECTORS.passwordInput().type(password);
   cy.intercept("POST", LOGIN_API_ENDPOINT).as("loginRequest");
-  cy.get(SELECTORS.loginButton).click();
+  SELECTORS.loginButton().click();
   cy.wait("@loginRequest");
 });
