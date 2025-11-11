@@ -1,21 +1,10 @@
-/* Constants */
-const SEAMLESS_LOGIN_URL = "https://ca-qa.seamless.md/#/";
-const TEST_EMAIL = "patient@example.com";
-const TEST_PASSWORD = "password123";
-const LOGIN_API_ENDPOINT = "/api/v4/auth";
-
-/* Selectors for login page elements */
-const SELECTORS = {
-  emailInput: () => cy.get('input[name="email"]'),
-  passwordInput: () => cy.get('input[name="password"]'),
-  loginButton: () => cy.contains("button", "Login"),
-  signUpLink: () => cy.contains("a", "Create"),
-  formEmailErrorMessage: () =>
-    cy.contains('[data-slot="error-message"]', "username"),
-  formPasswordErrorMessage: () =>
-    cy.contains('[data-slot="error-message"]', "password"),
-  loginFailureMessage: () => cy.contains('[role="alert"]', "incorrect"),
-};
+import {
+  SEAMLESS_LOGIN_URL,
+  TEST_EMAIL,
+  TEST_PASSWORD,
+  SELECTORS,
+} from "../support/constants";
+import "../support/commands";
 
 describe("SeamlessMD Login Page", () => {
   beforeEach(() => {
@@ -70,22 +59,4 @@ describe("SeamlessMD Login Page", () => {
     cy.login(TEST_EMAIL, TEST_PASSWORD, true);
     SELECTORS.loginFailureMessage().should("be.visible");
   });
-});
-
-/* Custom command to perform login */
-/* Keyboard navigation support */
-Cypress.Commands.add("login", (email, password, useKeyboard = false) => {
-  if (useKeyboard) {
-    SELECTORS.emailInput().focus().type(email);
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.intercept("POST", LOGIN_API_ENDPOINT).as("loginRequest");
-    SELECTORS.passwordInput().type(password).type("{enter}");
-    cy.wait("@loginRequest");
-    return;
-  }
-  SELECTORS.emailInput().type(email);
-  SELECTORS.passwordInput().type(password);
-  cy.intercept("POST", LOGIN_API_ENDPOINT).as("loginRequest");
-  SELECTORS.loginButton().click();
-  cy.wait("@loginRequest");
 });

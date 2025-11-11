@@ -1,25 +1,19 @@
-// ***********************************************
-// This example commands.js shows you how to
-// create various custom commands and overwrite
-// existing commands.
-//
-// For more comprehensive examples of custom
-// commands please read more here:
-// https://on.cypress.io/custom-commands
-// ***********************************************
-//
-//
-// -- This is a parent command --
-// Cypress.Commands.add('login', (email, password) => { ... })
-//
-//
-// -- This is a child command --
-// Cypress.Commands.add('drag', { prevSubject: 'element'}, (subject, options) => { ... })
-//
-//
-// -- This is a dual command --
-// Cypress.Commands.add('dismiss', { prevSubject: 'optional'}, (subject, options) => { ... })
-//
-//
-// -- This will overwrite an existing command --
-// Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
+import { SELECTORS, LOGIN_API_ENDPOINT } from "./constants";
+
+/* Custom command to perform login */
+/* Keyboard navigation support */
+Cypress.Commands.add("login", (email, password, useKeyboard = false) => {
+  if (useKeyboard) {
+    SELECTORS.emailInput().focus().type(email);
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.intercept("POST", LOGIN_API_ENDPOINT).as("loginRequest");
+    SELECTORS.passwordInput().type(password).type("{enter}");
+    cy.wait("@loginRequest");
+    return;
+  }
+  SELECTORS.emailInput().type(email);
+  SELECTORS.passwordInput().type(password);
+  cy.intercept("POST", LOGIN_API_ENDPOINT).as("loginRequest");
+  SELECTORS.loginButton().click();
+  cy.wait("@loginRequest");
+});
